@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>도요식별 알고리즘</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#2B6A6E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="도요식별">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --ink:#1C272B; --muted:#5A6A6E;
+  --line:#C5D0CD; --tide:#2B6A6E; --tide-ink:#FFFFFF; --mud:#7D5F43; --rare:#9A4B2F;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141C1F; --surface:#1D282C; --ink:#E4ECEA; --muted:#9AABA8;
+    --line:#34454A; --tide:#6FB0B3; --tide-ink:#0F1A1C; --mud:#C9A886; --rare:#E29A7C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141C1F; --surface:#1D282C; --ink:#E4ECEA; --muted:#9AABA8;
+  --line:#34454A; --tide:#6FB0B3; --tide-ink:#0F1A1C; --mud:#C9A886; --rare:#E29A7C;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%;
+}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em}
+.tabs{display:flex;gap:6px}
+.tab{
+  font:inherit;font-size:15px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+  background:transparent;color:var(--ink);cursor:pointer
+}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.path{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.path li{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.group{font-size:14px;color:var(--mud);font-weight:500;margin:0 0 6px}
+.q{font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.35}
+.choice{
+  display:block;width:100%;text-align:left;font:inherit;font-size:18px;line-height:1.45;
+  background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:12px;
+  padding:18px 16px;margin-bottom:12px;cursor:pointer;min-height:72px
+}
+.choice:active{border-color:var(--tide)}
+.choice:focus-visible,.tab:focus-visible,.nav button:focus-visible,summary:focus-visible,.sp:focus-visible{outline:3px solid var(--tide);outline-offset:2px}
+.nav{display:flex;gap:10px;margin-top:8px}
+.nav button{
+  font:inherit;font-size:16px;flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);
+  background:transparent;color:var(--ink);cursor:pointer
+}
+.nav button:disabled{opacity:.4;cursor:default}
+.result{background:var(--surface);border:2px solid var(--tide);border-radius:14px;padding:20px 18px;margin-bottom:12px}
+.result h2{font-size:28px;margin:0;line-height:1.2}
+.result .en{font-size:18px;color:var(--tide);font-weight:500;margin:4px 0 12px}
+.result dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px}
+.result dt{color:var(--muted)}
+.result dd{margin:0}
+.rare{display:inline-block;font-size:13px;color:var(--rare);border:1px solid var(--rare);border-radius:6px;padding:1px 8px;margin-left:8px;vertical-align:middle}
+.warn{font-size:15px;color:var(--muted);margin:12px 0 0}
+.multi .result{margin-bottom:10px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px}
+summary{cursor:pointer;font-weight:500;font-size:15px}
+details ol{margin:8px 0 2px;padding-left:20px;font-size:15px}
+.list h3{font-size:16px;color:var(--mud);margin:22px 0 8px}
+.sp{
+  display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;font:inherit;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;margin-bottom:6px;cursor:pointer
+}
+.sp span:last-child{color:var(--muted);font-size:14px;text-align:right}
+a.choice{text-decoration:none}
+.snode{margin-bottom:28px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.shead{font-size:18px;margin:24px 0 12px}
+.tolink{color:var(--tide);font-size:15px}
+#static .snode,#static .sres,#static .shead{display:none;border:0;margin:0 0 16px}
+.ebird{display:block;text-align:center;margin-top:16px;padding:14px;border-radius:10px;background:var(--tide);color:var(--tide-ink);font-weight:500;text-decoration:none}
+.ebird:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.stepr{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+label.choice{cursor:pointer}
+label.tolink{cursor:pointer;text-decoration:underline}
+#r-n-g1:checked ~ #n-g1,
+#r-n-g2:checked ~ #n-g2,
+#r-n-g3:checked ~ #n-g3,
+#r-n-g4:checked ~ #n-g4,
+#r-n-g5:checked ~ #n-g5,
+#r-n-g6:checked ~ #n-g6,
+#r-n-A1:checked ~ #n-A1,
+#r-n-A2:checked ~ #n-A2,
+#r-n-A3:checked ~ #n-A3,
+#r-n-A4:checked ~ #n-A4,
+#r-n-A5:checked ~ #n-A5,
+#r-n-B1:checked ~ #n-B1,
+#r-n-B2:checked ~ #n-B2,
+#r-n-B3:checked ~ #n-B3,
+#r-n-B4:checked ~ #n-B4,
+#r-n-B5:checked ~ #n-B5,
+#r-n-B6:checked ~ #n-B6,
+#r-n-B7:checked ~ #n-B7,
+#r-n-B8:checked ~ #n-B8,
+#r-n-B9:checked ~ #n-B9,
+#r-n-C1:checked ~ #n-C1,
+#r-n-C2:checked ~ #n-C2,
+#r-n-D1:checked ~ #n-D1,
+#r-n-D2:checked ~ #n-D2,
+#r-n-D3:checked ~ #n-D3,
+#r-n-D4:checked ~ #n-D4,
+#r-n-D5:checked ~ #n-D5,
+#r-n-E1:checked ~ #n-E1,
+#r-n-E2:checked ~ #n-E2,
+#r-n-E3:checked ~ #n-E3,
+#r-n-E4:checked ~ #n-E4,
+#r-n-E5:checked ~ #n-E5,
+#r-n-E6:checked ~ #n-E6,
+#r-n-E7:checked ~ #n-E7,
+#r-n-F1:checked ~ #n-F1,
+#r-n-F2:checked ~ #n-F2,
+#r-n-F3:checked ~ #n-F3,
+#r-n-F4:checked ~ #n-F4,
+#r-n-G1:checked ~ #n-G1,
+#r-m-snipe:checked ~ #m-snipe,
+#r-s-woodcock:checked ~ #s-woodcock,
+#r-s-jack:checked ~ #s-jack,
+#r-s-solsnipe:checked ~ #s-solsnipe,
+#r-s-latham:checked ~ #s-latham,
+#r-s-pintail:checked ~ #s-pintail,
+#r-s-swinhoe:checked ~ #s-swinhoe,
+#r-s-comsnipe:checked ~ #s-comsnipe,
+#r-s-lbdow:checked ~ #s-lbdow,
+#r-s-asdow:checked ~ #s-asdow,
+#r-s-btgod:checked ~ #s-btgod,
+#r-s-bargod:checked ~ #s-bargod,
+#r-s-litcur:checked ~ #s-litcur,
+#r-s-whimbrel:checked ~ #s-whimbrel,
+#r-s-eurcur:checked ~ #s-eurcur,
+#r-s-farcur:checked ~ #s-farcur,
+#r-s-spored:checked ~ #s-spored,
+#r-s-comred:checked ~ #s-comred,
+#r-s-comgre:checked ~ #s-comgre,
+#r-s-nordgre:checked ~ #s-nordgre,
+#r-s-marsh:checked ~ #s-marsh,
+#r-s-terek:checked ~ #s-terek,
+#r-s-green:checked ~ #s-green,
+#r-s-wood:checked ~ #s-wood,
+#r-s-common:checked ~ #s-common,
+#r-s-tattler:checked ~ #s-tattler,
+#r-s-turnstone:checked ~ #s-turnstone,
+#r-s-greatknot:checked ~ #s-greatknot,
+#r-s-redknot:checked ~ #s-redknot,
+#r-s-sanderling:checked ~ #s-sanderling,
+#r-s-dunlin:checked ~ #s-dunlin,
+#r-s-curlsand:checked ~ #s-curlsand,
+#r-s-pectoral:checked ~ #s-pectoral,
+#r-s-sharptail:checked ~ #s-sharptail,
+#r-s-ruff:checked ~ #s-ruff,
+#r-s-rnstint:checked ~ #s-rnstint,
+#r-s-litstint:checked ~ #s-litstint,
+#r-s-temstint:checked ~ #s-temstint,
+#r-s-ltstint:checked ~ #s-ltstint,
+#r-s-spoon:checked ~ #s-spoon,
+#r-s-broad:checked ~ #s-broad,
+#r-s-rnphal:checked ~ #s-rnphal,
+#r-s-redphal:checked ~ #s-redphal{display:block}
+.foot{font-size:13px;color:var(--muted);margin-top:28px}
+@media (prefers-reduced-motion:no-preference){
+  .stage{animation:in .18s ease-out}
+  @keyframes in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>도요식별 알고리즘</h1>
+    <div class="tabs">
+      <button class="tab" id="tabKey" aria-pressed="true">동정</button>
+      <button class="tab" id="tabList" aria-pressed="false">종 목록</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <div id="static"><input type="radio" name="step" class="stepr" id="r-n-g1" checked><input type="radio" name="step" class="stepr" id="r-n-g2"><input type="radio" name="step" class="stepr" id="r-n-g3"><input type="radio" name="step" class="stepr" id="r-n-g4"><input type="radio" name="step" class="stepr" id="r-n-g5"><input type="radio" name="step" class="stepr" id="r-n-g6"><input type="radio" name="step" class="stepr" id="r-n-A1"><input type="radio" name="step" class="stepr" id="r-n-A2"><input type="radio" name="step" class="stepr" id="r-n-A3"><input type="radio" name="step" class="stepr" id="r-n-A4"><input type="radio" name="step" class="stepr" id="r-n-A5"><input type="radio" name="step" class="stepr" id="r-n-B1"><input type="radio" name="step" class="stepr" id="r-n-B2"><input type="radio" name="step" class="stepr" id="r-n-B3"><input type="radio" name="step" class="stepr" id="r-n-B4"><input type="radio" name="step" class="stepr" id="r-n-B5"><input type="radio" name="step" class="stepr" id="r-n-B6"><input type="radio" name="step" class="stepr" id="r-n-B7"><input type="radio" name="step" class="stepr" id="r-n-B8"><input type="radio" name="step" class="stepr" id="r-n-B9"><input type="radio" name="step" class="stepr" id="r-n-C1"><input type="radio" name="step" class="stepr" id="r-n-C2"><input type="radio" name="step" class="stepr" id="r-n-D1"><input type="radio" name="step" class="stepr" id="r-n-D2"><input type="radio" name="step" class="stepr" id="r-n-D3"><input type="radio" name="step" class="stepr" id="r-n-D4"><input type="radio" name="step" class="stepr" id="r-n-D5"><input type="radio" name="step" class="stepr" id="r-n-E1"><input type="radio" name="step" class="stepr" id="r-n-E2"><input type="radio" name="step" class="stepr" id="r-n-E3"><input type="radio" name="step" class="stepr" id="r-n-E4"><input type="radio" name="step" class="stepr" id="r-n-E5"><input type="radio" name="step" class="stepr" id="r-n-E6"><input type="radio" name="step" class="stepr" id="r-n-E7"><input type="radio" name="step" class="stepr" id="r-n-F1"><input type="radio" name="step" class="stepr" id="r-n-F2"><input type="radio" name="step" class="stepr" id="r-n-F3"><input type="radio" name="step" class="stepr" id="r-n-F4"><input type="radio" name="step" class="stepr" id="r-n-G1"><input type="radio" name="step" class="stepr" id="r-m-snipe"><input type="radio" name="step" class="stepr" id="r-s-woodcock"><input type="radio" name="step" class="stepr" id="r-s-jack"><input type="radio" name="step" class="stepr" id="r-s-solsnipe"><input type="radio" name="step" class="stepr" id="r-s-latham"><input type="radio" name="step" class="stepr" id="r-s-pintail"><input type="radio" name="step" class="stepr" id="r-s-swinhoe"><input type="radio" name="step" class="stepr" id="r-s-comsnipe"><input type="radio" name="step" class="stepr" id="r-s-lbdow"><input type="radio" name="step" class="stepr" id="r-s-asdow"><input type="radio" name="step" class="stepr" id="r-s-btgod"><input type="radio" name="step" class="stepr" id="r-s-bargod"><input type="radio" name="step" class="stepr" id="r-s-litcur"><input type="radio" name="step" class="stepr" id="r-s-whimbrel"><input type="radio" name="step" class="stepr" id="r-s-eurcur"><input type="radio" name="step" class="stepr" id="r-s-farcur"><input type="radio" name="step" class="stepr" id="r-s-spored"><input type="radio" name="step" class="stepr" id="r-s-comred"><input type="radio" name="step" class="stepr" id="r-s-comgre"><input type="radio" name="step" class="stepr" id="r-s-nordgre"><input type="radio" name="step" class="stepr" id="r-s-marsh"><input type="radio" name="step" class="stepr" id="r-s-terek"><input type="radio" name="step" class="stepr" id="r-s-green"><input type="radio" name="step" class="stepr" id="r-s-wood"><input type="radio" name="step" class="stepr" id="r-s-common"><input type="radio" name="step" class="stepr" id="r-s-tattler"><input type="radio" name="step" class="stepr" id="r-s-turnstone"><input type="radio" name="step" class="stepr" id="r-s-greatknot"><input type="radio" name="step" class="stepr" id="r-s-redknot"><input type="radio" name="step" class="stepr" id="r-s-sanderling"><input type="radio" name="step" class="stepr" id="r-s-dunlin"><input type="radio" name="step" class="stepr" id="r-s-curlsand"><input type="radio" name="step" class="stepr" id="r-s-pectoral"><input type="radio" name="step" class="stepr" id="r-s-sharptail"><input type="radio" name="step" class="stepr" id="r-s-ruff"><input type="radio" name="step" class="stepr" id="r-s-rnstint"><input type="radio" name="step" class="stepr" id="r-s-litstint"><input type="radio" name="step" class="stepr" id="r-s-temstint"><input type="radio" name="step" class="stepr" id="r-s-ltstint"><input type="radio" name="step" class="stepr" id="r-s-spoon"><input type="radio" name="step" class="stepr" id="r-s-broad"><input type="radio" name="step" class="stepr" id="r-s-rnphal"><input type="radio" name="step" class="stepr" id="r-s-redphal"><p class="warn" style="margin:0 0 16px">질문 아래의 답을 누르면 다음 단계로 이동합니다.</p><section class="snode" id="n-g1"><p class="group">1단계: 무리 판별 (g1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-G1">물 위에 떠서 헤엄치며 먹이를 먹음</label><label class="choice" for="r-n-g2">걸어서 먹이를 먹음</label></section><section class="snode" id="n-g2"><p class="group">1단계: 무리 판별 (g2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-E1">부리가 아래로 크게 휨, 또는 몸길이 30cm 이상이고 부리가 머리 길이의 2배 이상</label><label class="choice" for="r-n-g3">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-g3"><p class="group">1단계: 무리 판별 (g3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-F1">풀 많은 민물습지·논·숲 바닥에 숨어 있음, 갈색 줄무늬 위장색, 긴 부리, 짧은 다리</label><label class="choice" for="r-n-g4">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-g4"><p class="group">1단계: 무리 판별 (g4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-A1">몸길이 약 17cm 이하의 소형</label><label class="choice" for="r-n-g5">그보다 큼</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-g5"><p class="group">1단계: 무리 판별 (g5)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-D1">다리가 길고 몸이 가늚, 또는 부리가 위로 휨</label><label class="choice" for="r-n-g6">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-g6"><p class="group">1단계: 무리 판별 (g6)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-C1">민물 물가에서 혼자 또는 몇 마리, 몸이나 꼬리를 위아래로 까닥임</label><label class="choice" for="r-n-B1">갯벌에서 무리를 지음, 몸이 통통함</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-A1"><p class="group">A 무리: 소형 좀도요류 (A1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-spoon">부리 끝이 숟가락 모양으로 넓음</label><label class="choice" for="r-n-A2">부리 끝이 넓지 않음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-A2"><p class="group">A 무리: 소형 좀도요류 (A2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-A3">다리가 노란색~녹황색</label><label class="choice" for="r-n-A4">다리가 검은색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-A3"><p class="group">A 무리: 소형 좀도요류 (A3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-ltstint">등에 갈색 무늬가 많음, 발가락이 길고 목이 김, 풀 많은 민물습지</label><label class="choice" for="r-s-temstint">등이 무늬 적은 회갈색, 날 때 바깥 꼬리깃이 흰색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-A4"><p class="group">A 무리: 소형 좀도요류 (A4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-broad">부리가 길고 끝이 아래로 꺾임, 눈썹선이 두 갈래</label><label class="choice" for="r-n-A5">부리가 짧고 곧음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-A5"><p class="group">A 무리: 소형 좀도요류 (A5)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-rnstint">다리가 비교적 짧고 부리가 굵고 뭉툭함, 번식깃에서 얼굴·목이 적갈색</label><label class="choice" for="r-s-litstint">다리가 더 길고 부리가 가늘고 뾰족함, 번식깃에서 등에 흰 V자</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B1"><p class="group">B 무리: 갯벌 중형 도요 (B1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-turnstone">다리 주황색, 부리 짧은 쐐기형, 가슴에 검은 무늬</label><label class="choice" for="r-n-B2">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B2"><p class="group">B 무리: 갯벌 중형 도요 (B2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-sanderling">몸이 매우 희고, 파도를 따라 뛰어다님, 뒷발가락 없음</label><label class="choice" for="r-n-B3">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B3"><p class="group">B 무리: 갯벌 중형 도요 (B3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-tattler">몸 전체가 균일한 회색, 흰 눈썹선, 노란 다리</label><label class="choice" for="r-n-B4">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B4"><p class="group">B 무리: 갯벌 중형 도요 (B4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-B5">부리가 뚜렷이 아래로 휨</label><label class="choice" for="r-n-B6">부리가 곧거나 약간 휨</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B5"><p class="group">B 무리: 갯벌 중형 도요 (B5)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-curlsand">다리가 길고 몸이 가늚, 날 때 허리 전체가 흰색</label><label class="choice" for="r-s-dunlin">다리가 짧고 몸이 둥긂, 허리 가운데 검은 선, 번식깃에서 배에 검은 반점</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B6"><p class="group">B 무리: 갯벌 중형 도요 (B6)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-B7">몸길이 24cm 이상, 다리 짧은 녹회색, 몸이 통통함</label><label class="choice" for="r-n-B8">그보다 작음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B7"><p class="group">B 무리: 갯벌 중형 도요 (B7)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-greatknot">부리가 머리보다 길고 약간 휨, 가슴·옆구리에 검은 반점</label><label class="choice" for="r-s-redknot">부리가 머리 길이 이하로 곧음, 번식깃은 주황색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B8"><p class="group">B 무리: 갯벌 중형 도요 (B8)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-ruff">목이 길고 머리가 작음, 등 깃이 비늘무늬, 수컷 번식깃에 목 장식깃</label><label class="choice" for="r-n-B9">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-B9"><p class="group">B 무리: 갯벌 중형 도요 (B9)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-pectoral">가슴 줄무늬가 흰 배와 뚜렷한 경계를 이루며 끝남, 부리 기부가 노르스름함</label><label class="choice" for="r-s-sharptail">가슴 줄무늬 경계가 흐림, 정수리 적갈색, 아래꼬리덮깃에 줄무늬</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-C1"><p class="group">C 무리: 민물 물가 단독형 (C1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-common">꼬리를 계속 까닥임, 가슴 옆의 흰색이 어깨 앞으로 파고듦</label><label class="choice" for="r-n-C2">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-C2"><p class="group">C 무리: 민물 물가 단독형 (C2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-green">등이 검은빛이고 흰 점이 적음, 날개 아랫면이 어두움</label><label class="choice" for="r-s-wood">등에 흰 반점이 뚜렷함, 흰 눈썹선이 굵음, 날개 아랫면이 옅음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-D1"><p class="group">D 무리: 다리 긴 도요 (Shank류) (D1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-terek">부리가 위로 휨, 다리가 짧은 주황색</label><label class="choice" for="r-n-D2">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-D2"><p class="group">D 무리: 다리 긴 도요 (Shank류) (D2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-D3">다리가 붉은색</label><label class="choice" for="r-n-D4">다리가 녹색~회녹색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-D3"><p class="group">D 무리: 다리 긴 도요 (Shank류) (D3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-comred">부리 기부가 붉음, 날 때 날개 뒷가장자리가 넓게 흰색</label><label class="choice" for="r-s-spored">부리가 가늘고 길며 아래부리 기부만 붉음, 번식깃은 전체가 검은색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-D4"><p class="group">D 무리: 다리 긴 도요 (Shank류) (D4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-marsh">몸이 작고(약 24cm) 부리가 바늘처럼 가늘고 곧음</label><label class="choice" for="r-n-D5">몸이 크고(30cm 이상) 부리가 굵고 약간 위로 휨</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-D5"><p class="group">D 무리: 다리 긴 도요 (Shank류) (D5)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-comgre">다리가 길고 녹색, 발가락 사이에 막이 거의 없음</label><label class="choice" for="r-s-nordgre">다리가 짧고 노란빛, 부리 기부가 굵고 두 가지 색, 발가락 사이에 막이 있음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E1"><p class="group">E 무리: 대형 긴부리 도요 (E1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-n-E2">부리가 아래로 휨</label><label class="choice" for="r-n-E5">부리가 곧거나 위로 휨</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E2"><p class="group">E 무리: 대형 긴부리 도요 (E2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-litcur">몸길이 약 30cm로 작고 부리가 짧음, 풀밭에 있음</label><label class="choice" for="r-n-E3">더 큼</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E3"><p class="group">E 무리: 대형 긴부리 도요 (E3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-whimbrel">정수리에 검은 줄무늬가 있고 가운데에 옅은 선</label><label class="choice" for="r-n-E4">정수리 줄무늬가 없고 부리가 매우 김</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E4"><p class="group">E 무리: 대형 긴부리 도요 (E4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-eurcur">허리와 아랫등이 흰색</label><label class="choice" for="r-s-farcur">허리가 갈색, 몸 전체가 갈색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E5"><p class="group">E 무리: 대형 긴부리 도요 (E5)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-bargod">부리가 약간 위로 휨, 등에 줄무늬</label><label class="choice" for="r-n-E6">부리가 곧음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E6"><p class="group">E 무리: 대형 긴부리 도요 (E6)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-btgod">다리가 김, 날 때 흰 날개띠와 검은 꼬리띠</label><label class="choice" for="r-n-E7">다리가 짧음, 부리를 반복해서 수직으로 찍으며 먹이를 찾음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-E7"><p class="group">E 무리: 대형 긴부리 도요 (E7)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-asdow">다리 검은색, 부리 끝이 약간 부풂, 약 34cm</label><label class="choice" for="r-s-lbdow">다리 녹황색, 더 작음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-F1"><p class="group">F 무리: 꺅도요·멧도요류 (F1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-woodcock">숲 바닥에 있음, 머리 뒤쪽에 가로줄무늬</label><label class="choice" for="r-n-F2">습지나 물가에 있음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-F2"><p class="group">F 무리: 꺅도요·멧도요류 (F2)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-jack">매우 작고 부리가 짧음, 정수리 가운데 줄이 없음</label><label class="choice" for="r-n-F3">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-F3"><p class="group">F 무리: 꺅도요·멧도요류 (F3)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-solsnipe">겨울철 산간 계곡 물가, 몸이 어둡고 흰 점이 있음</label><label class="choice" for="r-n-F4">해당 없음</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-F4"><p class="group">F 무리: 꺅도요·멧도요류 (F4)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-comsnipe">날 때 날개 뒷가장자리에 흰 띠가 뚜렷함</label><label class="choice" for="r-m-snipe">흰 띠가 없거나 약함</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="n-G1"><p class="group">G 무리: 헤엄치는 도요 (G1)</p><p class="q">어느 쪽에 가깝습니까?</p><label class="choice" for="r-s-rnphal">부리가 바늘처럼 가늚, 등에 줄무늬</label><label class="choice" for="r-s-redphal">부리가 굵고 짧음(비번식기에는 기부가 노란빛), 등이 무늬 없는 회색</label><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><section class="snode" id="m-snipe"><p class="q">세 종 중 하나</p><p class="warn" style="margin:0 0 14px">야외에서 구별하기 매우 어렵고, 꼬리깃의 수와 모양으로 확정합니다. 사진 촬영이 필요합니다.</p><div class="result"><h2>큰꺅도요</h2><p class="en">Latham's Snipe</p><dl><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>영국 조류학자 존 레이섬</dd></dl><a class="ebird" href="https://ebird.org/species/latsni1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a></div><div class="result"><h2>바늘꼬리도요</h2><p class="en">Pin-tailed Snipe</p><dl><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>바늘처럼 가는 바깥 꼬리깃</dd></dl><a class="ebird" href="https://ebird.org/species/pitsni/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a></div><div class="result"><h2>꺅도요사촌</h2><p class="en">Swinhoe's Snipe</p><dl><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>영국 박물학자 로버트 스윈호</dd></dl><a class="ebird" href="https://ebird.org/species/swisni1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a></div><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></section><div class="result sres" id="s-woodcock"><h2>멧도요</h2><p class="en">Eurasian Woodcock</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Woodcock</dt><dd>wood(숲) + cock(수탉, 새). 숲에 사는 새.</dd><dt>수식어</dt><dd>유라시아 분포</dd></dl><a class="ebird" href="https://ebird.org/species/eurwoo/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-jack"><h2>꼬마도요</h2><p class="en">Jack Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>jack은 '작은' 뜻</dd></dl><a class="ebird" href="https://ebird.org/species/jacsni/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-solsnipe"><h2>청도요</h2><p class="en">Solitary Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>홀로 지내는 습성</dd></dl><a class="ebird" href="https://ebird.org/species/solsni1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-latham"><h2>큰꺅도요</h2><p class="en">Latham's Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>영국 조류학자 존 레이섬</dd></dl><a class="ebird" href="https://ebird.org/species/latsni1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-pintail"><h2>바늘꼬리도요</h2><p class="en">Pin-tailed Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>바늘처럼 가는 바깥 꼬리깃</dd></dl><a class="ebird" href="https://ebird.org/species/pitsni/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-swinhoe"><h2>꺅도요사촌</h2><p class="en">Swinhoe's Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>영국 박물학자 로버트 스윈호</dd></dl><a class="ebird" href="https://ebird.org/species/swisni1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-comsnipe"><h2>꺅도요</h2><p class="en">Common Snipe</p><dl><dt>무리</dt><dd>F 무리: 꺅도요·멧도요류</dd><dt>Snipe</dt><dd>고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.</dd><dt>수식어</dt><dd>흔한 종</dd></dl><a class="ebird" href="https://ebird.org/species/comsni/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-lbdow"><h2>긴부리도요<span class="rare">드묾</span></h2><p class="en">Long-billed Dowitcher</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Dowitcher</dt><dd>북미 이로쿼이어(모호크어) 계열 말에서 유래.</dd><dt>수식어</dt><dd>긴 부리</dd></dl><p class="warn">드문 종입니다. 사진을 남기고 한 번 더 확인하세요.</p><a class="ebird" href="https://ebird.org/species/lobdow/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-asdow"><h2>큰부리도요</h2><p class="en">Asian Dowitcher</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Dowitcher</dt><dd>북미 이로쿼이어(모호크어) 계열 말에서 유래.</dd><dt>수식어</dt><dd>아시아 분포</dd></dl><a class="ebird" href="https://ebird.org/species/asidow1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-btgod"><h2>흑꼬리도요</h2><p class="en">Black-tailed Godwit</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Godwit</dt><dd>어원 불명확. '좋은 먹거리'설과 울음소리 모방설.</dd><dt>수식어</dt><dd>검은 꼬리</dd></dl><a class="ebird" href="https://ebird.org/species/bktgod/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-bargod"><h2>큰뒷부리도요</h2><p class="en">Bar-tailed Godwit</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Godwit</dt><dd>어원 불명확. '좋은 먹거리'설과 울음소리 모방설.</dd><dt>수식어</dt><dd>꼬리의 가로줄 무늬</dd></dl><a class="ebird" href="https://ebird.org/species/batgod/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-litcur"><h2>쇠부리도요</h2><p class="en">Little Curlew</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Curlew</dt><dd>고대 프랑스어 courlieu, 울음소리 모방.</dd><dt>수식어</dt><dd>작은 종</dd></dl><a class="ebird" href="https://ebird.org/species/litcur/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-whimbrel"><h2>중부리도요</h2><p class="en">Whimbrel</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Whimbrel</dt><dd>울음소리를 뜻하는 whimp(er) + 축소 접미사 -rel.</dd><dt>수식어</dt><dd>울음소리 유래</dd></dl><a class="ebird" href="https://ebird.org/species/whimbr5/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-eurcur"><h2>마도요</h2><p class="en">Eurasian Curlew</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Curlew</dt><dd>고대 프랑스어 courlieu, 울음소리 모방.</dd><dt>수식어</dt><dd>유라시아 분포</dd></dl><a class="ebird" href="https://ebird.org/species/eurcur/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-farcur"><h2>알락꼬리마도요</h2><p class="en">Far Eastern Curlew</p><dl><dt>무리</dt><dd>E 무리: 대형 긴부리 도요</dd><dt>Curlew</dt><dd>고대 프랑스어 courlieu, 울음소리 모방.</dd><dt>수식어</dt><dd>극동 지역 분포</dd></dl><a class="ebird" href="https://ebird.org/species/faecur/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-spored"><h2>학도요</h2><p class="en">Spotted Redshank</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Shank</dt><dd>정강이, 다리. 다리 색을 이름으로 삼음.</dd><dt>수식어</dt><dd>반점 무늬, 붉은 다리</dd></dl><a class="ebird" href="https://ebird.org/species/spored/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-comred"><h2>붉은발도요</h2><p class="en">Common Redshank</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Shank</dt><dd>정강이, 다리. 다리 색을 이름으로 삼음.</dd><dt>수식어</dt><dd>흔한 종, 붉은 다리</dd></dl><a class="ebird" href="https://ebird.org/species/comred1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-comgre"><h2>청다리도요</h2><p class="en">Common Greenshank</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Shank</dt><dd>정강이, 다리. 다리 색을 이름으로 삼음.</dd><dt>수식어</dt><dd>흔한 종, 녹색 다리</dd></dl><a class="ebird" href="https://ebird.org/species/comgre/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-nordgre"><h2>청다리도요사촌</h2><p class="en">Nordmann's Greenshank</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Shank</dt><dd>정강이, 다리. 다리 색을 이름으로 삼음.</dd><dt>수식어</dt><dd>핀란드 동물학자 알렉산더 폰 노르트만</dd></dl><a class="ebird" href="https://ebird.org/species/norgre1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-marsh"><h2>쇠청다리도요</h2><p class="en">Marsh Sandpiper</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>습지</dd></dl><a class="ebird" href="https://ebird.org/species/marsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-terek"><h2>뒷부리도요</h2><p class="en">Terek Sandpiper</p><dl><dt>무리</dt><dd>D 무리: 다리 긴 도요 (Shank류)</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>카스피해로 흐르는 테레크강</dd></dl><a class="ebird" href="https://ebird.org/species/tersan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-green"><h2>삑삑도요</h2><p class="en">Green Sandpiper</p><dl><dt>무리</dt><dd>C 무리: 민물 물가 단독형</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>녹색빛 등</dd></dl><a class="ebird" href="https://ebird.org/species/grnsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-wood"><h2>알락도요</h2><p class="en">Wood Sandpiper</p><dl><dt>무리</dt><dd>C 무리: 민물 물가 단독형</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>숲(번식지)</dd></dl><a class="ebird" href="https://ebird.org/species/woosan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-common"><h2>깝작도요</h2><p class="en">Common Sandpiper</p><dl><dt>무리</dt><dd>C 무리: 민물 물가 단독형</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>흔한 종</dd></dl><a class="ebird" href="https://ebird.org/species/comsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-tattler"><h2>노랑발도요</h2><p class="en">Grey-tailed Tattler</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Tattler</dt><dd>tattle(수다 떨다). 시끄럽게 우는 습성.</dd><dt>수식어</dt><dd>회색 꼬리</dd></dl><a class="ebird" href="https://ebird.org/species/gyttat1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-turnstone"><h2>꼬까도요</h2><p class="en">Ruddy Turnstone</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Turnstone</dt><dd>turn(뒤집다) + stone(돌). 돌을 뒤집어 먹이를 찾음.</dd><dt>수식어</dt><dd>붉은빛</dd></dl><a class="ebird" href="https://ebird.org/species/rudtur/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-greatknot"><h2>붉은어깨도요</h2><p class="en">Great Knot</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Knot</dt><dd>어원 불명확. 울음소리 모방설, 크누트 왕 유래설.</dd><dt>수식어</dt><dd>큰 종</dd></dl><a class="ebird" href="https://ebird.org/species/grekno/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-redknot"><h2>붉은가슴도요</h2><p class="en">Red Knot</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Knot</dt><dd>어원 불명확. 울음소리 모방설, 크누트 왕 유래설.</dd><dt>수식어</dt><dd>번식기 붉은 몸색</dd></dl><a class="ebird" href="https://ebird.org/species/redkno/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-sanderling"><h2>세가락도요</h2><p class="en">Sanderling</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Sanderling</dt><dd>sand(모래) + -ling(작은 것). 모래밭의 작은 새.</dd><dt>수식어</dt><dd>모래밭의 작은 새</dd></dl><a class="ebird" href="https://ebird.org/species/sander/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-dunlin"><h2>민물도요</h2><p class="en">Dunlin</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Dunlin</dt><dd>dun(회갈색) + -ling. 회갈색의 작은 새.</dd><dt>수식어</dt><dd>회갈색의 작은 새</dd></dl><a class="ebird" href="https://ebird.org/species/dunlin/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-curlsand"><h2>붉은갯도요</h2><p class="en">Curlew Sandpiper</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>마도요처럼 휜 부리</dd></dl><a class="ebird" href="https://ebird.org/species/cursan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-pectoral"><h2>아메리카메추라기도요<span class="rare">드묾</span></h2><p class="en">Pectoral Sandpiper</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>가슴(pectoral)의 뚜렷한 무늬 경계</dd></dl><p class="warn">드문 종입니다. 사진을 남기고 한 번 더 확인하세요.</p><a class="ebird" href="https://ebird.org/species/pecsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-sharptail"><h2>메추라기도요</h2><p class="en">Sharp-tailed Sandpiper</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>뾰족한 꼬리</dd></dl><a class="ebird" href="https://ebird.org/species/shtsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-ruff"><h2>목도리도요</h2><p class="en">Ruff</p><dl><dt>무리</dt><dd>B 무리: 갯벌 중형 도요</dd><dt>Ruff</dt><dd>16세기 유럽의 주름 옷깃. 수컷 번식깃 모양.</dd><dt>수식어</dt><dd>수컷의 목 장식깃</dd></dl><a class="ebird" href="https://ebird.org/species/ruff/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-rnstint"><h2>좀도요</h2><p class="en">Red-necked Stint</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Stint</dt><dd>어원 불명확. '작다'는 뜻의 옛말과 연관 추정.</dd><dt>수식어</dt><dd>번식기 붉은 목</dd></dl><a class="ebird" href="https://ebird.org/species/rensti/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-litstint"><h2>작은도요<span class="rare">드묾</span></h2><p class="en">Little Stint</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Stint</dt><dd>어원 불명확. '작다'는 뜻의 옛말과 연관 추정.</dd><dt>수식어</dt><dd>작은 종</dd></dl><p class="warn">드문 종입니다. 사진을 남기고 한 번 더 확인하세요.</p><a class="ebird" href="https://ebird.org/species/litsti/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-temstint"><h2>흰꼬리좀도요</h2><p class="en">Temminck's Stint</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Stint</dt><dd>어원 불명확. '작다'는 뜻의 옛말과 연관 추정.</dd><dt>수식어</dt><dd>네덜란드 동물학자 테밍크</dd></dl><a class="ebird" href="https://ebird.org/species/temsti/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-ltstint"><h2>종달도요</h2><p class="en">Long-toed Stint</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Stint</dt><dd>어원 불명확. '작다'는 뜻의 옛말과 연관 추정.</dd><dt>수식어</dt><dd>긴 발가락</dd></dl><a class="ebird" href="https://ebird.org/species/lotsti/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-spoon"><h2>넓적부리도요</h2><p class="en">Spoon-billed Sandpiper</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>숟가락 모양 부리</dd></dl><a class="ebird" href="https://ebird.org/species/spbsan1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-broad"><h2>송곳부리도요</h2><p class="en">Broad-billed Sandpiper</p><dl><dt>무리</dt><dd>A 무리: 소형 좀도요류</dd><dt>Sandpiper</dt><dd>sand(모래) + piper(피리 부는 것).</dd><dt>수식어</dt><dd>넓은 부리</dd></dl><a class="ebird" href="https://ebird.org/species/brbsan/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-rnphal"><h2>지느러미발도요</h2><p class="en">Red-necked Phalarope</p><dl><dt>무리</dt><dd>G 무리: 헤엄치는 도요</dd><dt>Phalarope</dt><dd>그리스어 phalaris(물닭) + pous(발). 판 모양 발가락.</dd><dt>수식어</dt><dd>번식기 붉은 목</dd></dl><a class="ebird" href="https://ebird.org/species/renpha/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div><div class="result sres" id="s-redphal"><h2>회색머리지느러미발도요</h2><p class="en">Red Phalarope</p><dl><dt>무리</dt><dd>G 무리: 헤엄치는 도요</dd><dt>Phalarope</dt><dd>그리스어 phalaris(물닭) + pous(발). 판 모양 발가락.</dd><dt>수식어</dt><dd>번식기 붉은 몸</dd></dl><a class="ebird" href="https://ebird.org/species/redpha1/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a><p><label class="tolink" for="r-n-g1">처음 질문으로</label></p></div></div>
+  <p class="foot">자료 1(단계별 질문), 자료 2(판단 우선순위), 자료 3(BirdLife Australia 무리 구분)의 원칙을 조합해 만든 검색표입니다. 현장 검증 전이므로 『한국의 도요물떼새』의 계절별 사진과 대조해 확인하세요.</p>
+</div>
+
+<script>
+const ROOT = {
+  Woodcock:"wood(숲) + cock(수탉, 새). 숲에 사는 새.",
+  Snipe:"고대 노르드어 snípa에서 유래, 긴 부리와 관련된 말.",
+  Dowitcher:"북미 이로쿼이어(모호크어) 계열 말에서 유래.",
+  Godwit:"어원 불명확. '좋은 먹거리'설과 울음소리 모방설.",
+  Curlew:"고대 프랑스어 courlieu, 울음소리 모방.",
+  Whimbrel:"울음소리를 뜻하는 whimp(er) + 축소 접미사 -rel.",
+  Shank:"정강이, 다리. 다리 색을 이름으로 삼음.",
+  Tattler:"tattle(수다 떨다). 시끄럽게 우는 습성.",
+  Turnstone:"turn(뒤집다) + stone(돌). 돌을 뒤집어 먹이를 찾음.",
+  Knot:"어원 불명확. 울음소리 모방설, 크누트 왕 유래설.",
+  Sanderling:"sand(모래) + -ling(작은 것). 모래밭의 작은 새.",
+  Dunlin:"dun(회갈색) + -ling. 회갈색의 작은 새.",
+  Stint:"어원 불명확. '작다'는 뜻의 옛말과 연관 추정.",
+  Sandpiper:"sand(모래) + piper(피리 부는 것).",
+  Ruff:"16세기 유럽의 주름 옷깃. 수컷 번식깃 모양.",
+  Phalarope:"그리스어 phalaris(물닭) + pous(발). 판 모양 발가락."
+};
+
+const EB = {"woodcock": "eurwoo", "jack": "jacsni", "solsnipe": "solsni1", "latham": "latsni1", "pintail": "pitsni", "swinhoe": "swisni1", "comsnipe": "comsni", "lbdow": "lobdow", "asdow": "asidow1", "btgod": "bktgod", "bargod": "batgod", "litcur": "litcur", "whimbrel": "whimbr5", "eurcur": "eurcur", "farcur": "faecur", "spored": "spored", "comred": "comred1", "comgre": "comgre", "nordgre": "norgre1", "marsh": "marsan", "terek": "tersan", "green": "grnsan", "wood": "woosan", "common": "comsan", "tattler": "gyttat1", "turnstone": "rudtur", "greatknot": "grekno", "redknot": "redkno", "sanderling": "sander", "dunlin": "dunlin", "curlsand": "cursan", "pectoral": "pecsan", "sharptail": "shtsan", "ruff": "ruff", "rnstint": "rensti", "litstint": "litsti", "temstint": "temsti", "ltstint": "lotsti", "spoon": "spbsan1", "broad": "brbsan", "rnphal": "renpha", "redphal": "redpha1"};
+const SP = {
+  woodcock:{ko:"멧도요",en:"Eurasian Woodcock",mod:"유라시아 분포",root:"Woodcock",g:"F"},
+  jack:{ko:"꼬마도요",en:"Jack Snipe",mod:"jack은 '작은' 뜻",root:"Snipe",g:"F"},
+  solsnipe:{ko:"청도요",en:"Solitary Snipe",mod:"홀로 지내는 습성",root:"Snipe",g:"F"},
+  latham:{ko:"큰꺅도요",en:"Latham's Snipe",mod:"영국 조류학자 존 레이섬",root:"Snipe",g:"F"},
+  pintail:{ko:"바늘꼬리도요",en:"Pin-tailed Snipe",mod:"바늘처럼 가는 바깥 꼬리깃",root:"Snipe",g:"F"},
+  swinhoe:{ko:"꺅도요사촌",en:"Swinhoe's Snipe",mod:"영국 박물학자 로버트 스윈호",root:"Snipe",g:"F"},
+  comsnipe:{ko:"꺅도요",en:"Common Snipe",mod:"흔한 종",root:"Snipe",g:"F"},
+  lbdow:{ko:"긴부리도요",en:"Long-billed Dowitcher",mod:"긴 부리",root:"Dowitcher",g:"E",rare:1},
+  asdow:{ko:"큰부리도요",en:"Asian Dowitcher",mod:"아시아 분포",root:"Dowitcher",g:"E"},
+  btgod:{ko:"흑꼬리도요",en:"Black-tailed Godwit",mod:"검은 꼬리",root:"Godwit",g:"E"},
+  bargod:{ko:"큰뒷부리도요",en:"Bar-tailed Godwit",mod:"꼬리의 가로줄 무늬",root:"Godwit",g:"E"},
+  litcur:{ko:"쇠부리도요",en:"Little Curlew",mod:"작은 종",root:"Curlew",g:"E"},
+  whimbrel:{ko:"중부리도요",en:"Whimbrel",mod:"울음소리 유래",root:"Whimbrel",g:"E"},
+  eurcur:{ko:"마도요",en:"Eurasian Curlew",mod:"유라시아 분포",root:"Curlew",g:"E"},
+  farcur:{ko:"알락꼬리마도요",en:"Far Eastern Curlew",mod:"극동 지역 분포",root:"Curlew",g:"E"},
+  spored:{ko:"학도요",en:"Spotted Redshank",mod:"반점 무늬, 붉은 다리",root:"Shank",g:"D"},
+  comred:{ko:"붉은발도요",en:"Common Redshank",mod:"흔한 종, 붉은 다리",root:"Shank",g:"D"},
+  comgre:{ko:"청다리도요",en:"Common Greenshank",mod:"흔한 종, 녹색 다리",root:"Shank",g:"D"},
+  nordgre:{ko:"청다리도요사촌",en:"Nordmann's Greenshank",mod:"핀란드 동물학자 알렉산더 폰 노르트만",root:"Shank",g:"D"},
+  marsh:{ko:"쇠청다리도요",en:"Marsh Sandpiper",mod:"습지",root:"Sandpiper",g:"D"},
+  terek:{ko:"뒷부리도요",en:"Terek Sandpiper",mod:"카스피해로 흐르는 테레크강",root:"Sandpiper",g:"D"},
+  green:{ko:"삑삑도요",en:"Green Sandpiper",mod:"녹색빛 등",root:"Sandpiper",g:"C"},
+  wood:{ko:"알락도요",en:"Wood Sandpiper",mod:"숲(번식지)",root:"Sandpiper",g:"C"},
+  common:{ko:"깝작도요",en:"Common Sandpiper",mod:"흔한 종",root:"Sandpiper",g:"C"},
+  tattler:{ko:"노랑발도요",en:"Grey-tailed Tattler",mod:"회색 꼬리",root:"Tattler",g:"B"},
+  turnstone:{ko:"꼬까도요",en:"Ruddy Turnstone",mod:"붉은빛",root:"Turnstone",g:"B"},
+  greatknot:{ko:"붉은어깨도요",en:"Great Knot",mod:"큰 종",root:"Knot",g:"B"},
+  redknot:{ko:"붉은가슴도요",en:"Red Knot",mod:"번식기 붉은 몸색",root:"Knot",g:"B"},
+  sanderling:{ko:"세가락도요",en:"Sanderling",mod:"모래밭의 작은 새",root:"Sanderling",g:"B"},
+  dunlin:{ko:"민물도요",en:"Dunlin",mod:"회갈색의 작은 새",root:"Dunlin",g:"B"},
+  curlsand:{ko:"붉은갯도요",en:"Curlew Sandpiper",mod:"마도요처럼 휜 부리",root:"Sandpiper",g:"B"},
+  pectoral:{ko:"아메리카메추라기도요",en:"Pectoral Sandpiper",mod:"가슴(pectoral)의 뚜렷한 무늬 경계",root:"Sandpiper",g:"B",rare:1},
+  sharptail:{ko:"메추라기도요",en:"Sharp-tailed Sandpiper",mod:"뾰족한 꼬리",root:"Sandpiper",g:"B"},
+  ruff:{ko:"목도리도요",en:"Ruff",mod:"수컷의 목 장식깃",root:"Ruff",g:"B"},
+  rnstint:{ko:"좀도요",en:"Red-necked Stint",mod:"번식기 붉은 목",root:"Stint",g:"A"},
+  litstint:{ko:"작은도요",en:"Little Stint",mod:"작은 종",root:"Stint",g:"A",rare:1},
+  temstint:{ko:"흰꼬리좀도요",en:"Temminck's Stint",mod:"네덜란드 동물학자 테밍크",root:"Stint",g:"A"},
+  ltstint:{ko:"종달도요",en:"Long-toed Stint",mod:"긴 발가락",root:"Stint",g:"A"},
+  spoon:{ko:"넓적부리도요",en:"Spoon-billed Sandpiper",mod:"숟가락 모양 부리",root:"Sandpiper",g:"A"},
+  broad:{ko:"송곳부리도요",en:"Broad-billed Sandpiper",mod:"넓은 부리",root:"Sandpiper",g:"A"},
+  rnphal:{ko:"지느러미발도요",en:"Red-necked Phalarope",mod:"번식기 붉은 목",root:"Phalarope",g:"G"},
+  redphal:{ko:"회색머리지느러미발도요",en:"Red Phalarope",mod:"번식기 붉은 몸",root:"Phalarope",g:"G"}
+};
+
+const GROUPS = {
+  A:"A 무리: 소형 좀도요류", B:"B 무리: 갯벌 중형 도요", C:"C 무리: 민물 물가 단독형",
+  D:"D 무리: 다리 긴 도요 (Shank류)", E:"E 무리: 대형 긴부리 도요", F:"F 무리: 꺅도요·멧도요류",
+  G:"G 무리: 헤엄치는 도요"
+};
+
+// next: node id, "sp:id", or "multi:id,id,id"
+const K = {
+  g1:{grp:"1단계: 무리 판별",a:["물 위에 떠서 헤엄치며 먹이를 먹음","G1"],b:["걸어서 먹이를 먹음","g2"]},
+  g2:{grp:"1단계: 무리 판별",a:["부리가 아래로 크게 휨, 또는 몸길이 30cm 이상이고 부리가 머리 길이의 2배 이상","E1"],b:["해당 없음","g3"]},
+  g3:{grp:"1단계: 무리 판별",a:["풀 많은 민물습지·논·숲 바닥에 숨어 있음, 갈색 줄무늬 위장색, 긴 부리, 짧은 다리","F1"],b:["해당 없음","g4"]},
+  g4:{grp:"1단계: 무리 판별",a:["몸길이 약 17cm 이하의 소형","A1"],b:["그보다 큼","g5"]},
+  g5:{grp:"1단계: 무리 판별",a:["다리가 길고 몸이 가늚, 또는 부리가 위로 휨","D1"],b:["해당 없음","g6"]},
+  g6:{grp:"1단계: 무리 판별",a:["민물 물가에서 혼자 또는 몇 마리, 몸이나 꼬리를 위아래로 까닥임","C1"],b:["갯벌에서 무리를 지음, 몸이 통통함","B1"]},
+
+  A1:{grp:GROUPS.A,a:["부리 끝이 숟가락 모양으로 넓음","sp:spoon"],b:["부리 끝이 넓지 않음","A2"]},
+  A2:{grp:GROUPS.A,a:["다리가 노란색~녹황색","A3"],b:["다리가 검은색","A4"]},
+  A3:{grp:GROUPS.A,a:["등에 갈색 무늬가 많음, 발가락이 길고 목이 김, 풀 많은 민물습지","sp:ltstint"],b:["등이 무늬 적은 회갈색, 날 때 바깥 꼬리깃이 흰색","sp:temstint"]},
+  A4:{grp:GROUPS.A,a:["부리가 길고 끝이 아래로 꺾임, 눈썹선이 두 갈래","sp:broad"],b:["부리가 짧고 곧음","A5"]},
+  A5:{grp:GROUPS.A,a:["다리가 비교적 짧고 부리가 굵고 뭉툭함, 번식깃에서 얼굴·목이 적갈색","sp:rnstint"],b:["다리가 더 길고 부리가 가늘고 뾰족함, 번식깃에서 등에 흰 V자","sp:litstint"]},
+
+  B1:{grp:GROUPS.B,a:["다리 주황색, 부리 짧은 쐐기형, 가슴에 검은 무늬","sp:turnstone"],b:["해당 없음","B2"]},
+  B2:{grp:GROUPS.B,a:["몸이 매우 희고, 파도를 따라 뛰어다님, 뒷발가락 없음","sp:sanderling"],b:["해당 없음","B3"]},
+  B3:{grp:GROUPS.B,a:["몸 전체가 균일한 회색, 흰 눈썹선, 노란 다리","sp:tattler"],b:["해당 없음","B4"]},
+  B4:{grp:GROUPS.B,a:["부리가 뚜렷이 아래로 휨","B5"],b:["부리가 곧거나 약간 휨","B6"]},
+  B5:{grp:GROUPS.B,a:["다리가 길고 몸이 가늚, 날 때 허리 전체가 흰색","sp:curlsand"],b:["다리가 짧고 몸이 둥긂, 허리 가운데 검은 선, 번식깃에서 배에 검은 반점","sp:dunlin"]},
+  B6:{grp:GROUPS.B,a:["몸길이 24cm 이상, 다리 짧은 녹회색, 몸이 통통함","B7"],b:["그보다 작음","B8"]},
+  B7:{grp:GROUPS.B,a:["부리가 머리보다 길고 약간 휨, 가슴·옆구리에 검은 반점","sp:greatknot"],b:["부리가 머리 길이 이하로 곧음, 번식깃은 주황색","sp:redknot"]},
+  B8:{grp:GROUPS.B,a:["목이 길고 머리가 작음, 등 깃이 비늘무늬, 수컷 번식깃에 목 장식깃","sp:ruff"],b:["해당 없음","B9"]},
+  B9:{grp:GROUPS.B,a:["가슴 줄무늬가 흰 배와 뚜렷한 경계를 이루며 끝남, 부리 기부가 노르스름함","sp:pectoral"],b:["가슴 줄무늬 경계가 흐림, 정수리 적갈색, 아래꼬리덮깃에 줄무늬","sp:sharptail"]},
+
+  C1:{grp:GROUPS.C,a:["꼬리를 계속 까닥임, 가슴 옆의 흰색이 어깨 앞으로 파고듦","sp:common"],b:["해당 없음","C2"]},
+  C2:{grp:GROUPS.C,a:["등이 검은빛이고 흰 점이 적음, 날개 아랫면이 어두움","sp:green"],b:["등에 흰 반점이 뚜렷함, 흰 눈썹선이 굵음, 날개 아랫면이 옅음","sp:wood"]},
+
+  D1:{grp:GROUPS.D,a:["부리가 위로 휨, 다리가 짧은 주황색","sp:terek"],b:["해당 없음","D2"]},
+  D2:{grp:GROUPS.D,a:["다리가 붉은색","D3"],b:["다리가 녹색~회녹색","D4"]},
+  D3:{grp:GROUPS.D,a:["부리 기부가 붉음, 날 때 날개 뒷가장자리가 넓게 흰색","sp:comred"],b:["부리가 가늘고 길며 아래부리 기부만 붉음, 번식깃은 전체가 검은색","sp:spored"]},
+  D4:{grp:GROUPS.D,a:["몸이 작고(약 24cm) 부리가 바늘처럼 가늘고 곧음","sp:marsh"],b:["몸이 크고(30cm 이상) 부리가 굵고 약간 위로 휨","D5"]},
+  D5:{grp:GROUPS.D,a:["다리가 길고 녹색, 발가락 사이에 막이 거의 없음","sp:comgre"],b:["다리가 짧고 노란빛, 부리 기부가 굵고 두 가지 색, 발가락 사이에 막이 있음","sp:nordgre"]},
+
+  E1:{grp:GROUPS.E,a:["부리가 아래로 휨","E2"],b:["부리가 곧거나 위로 휨","E5"]},
+  E2:{grp:GROUPS.E,a:["몸길이 약 30cm로 작고 부리가 짧음, 풀밭에 있음","sp:litcur"],b:["더 큼","E3"]},
+  E3:{grp:GROUPS.E,a:["정수리에 검은 줄무늬가 있고 가운데에 옅은 선","sp:whimbrel"],b:["정수리 줄무늬가 없고 부리가 매우 김","E4"]},
+  E4:{grp:GROUPS.E,a:["허리와 아랫등이 흰색","sp:eurcur"],b:["허리가 갈색, 몸 전체가 갈색","sp:farcur"]},
+  E5:{grp:GROUPS.E,a:["부리가 약간 위로 휨, 등에 줄무늬","sp:bargod"],b:["부리가 곧음","E6"]},
+  E6:{grp:GROUPS.E,a:["다리가 김, 날 때 흰 날개띠와 검은 꼬리띠","sp:btgod"],b:["다리가 짧음, 부리를 반복해서 수직으로 찍으며 먹이를 찾음","E7"]},
+  E7:{grp:GROUPS.E,a:["다리 검은색, 부리 끝이 약간 부풂, 약 34cm","sp:asdow"],b:["다리 녹황색, 더 작음","sp:lbdow"]},
+
+  F1:{grp:GROUPS.F,a:["숲 바닥에 있음, 머리 뒤쪽에 가로줄무늬","sp:woodcock"],b:["습지나 물가에 있음","F2"]},
+  F2:{grp:GROUPS.F,a:["매우 작고 부리가 짧음, 정수리 가운데 줄이 없음","sp:jack"],b:["해당 없음","F3"]},
+  F3:{grp:GROUPS.F,a:["겨울철 산간 계곡 물가, 몸이 어둡고 흰 점이 있음","sp:solsnipe"],b:["해당 없음","F4"]},
+  F4:{grp:GROUPS.F,a:["날 때 날개 뒷가장자리에 흰 띠가 뚜렷함","sp:comsnipe"],b:["흰 띠가 없거나 약함","multi:latham,pintail,swinhoe"]},
+
+  G1:{grp:GROUPS.G,a:["부리가 바늘처럼 가늚, 등에 줄무늬","sp:rnphal"],b:["부리가 굵고 짧음(비번식기에는 기부가 노란빛), 등이 무늬 없는 회색","sp:redphal"]}
+};
+
+const app = document.getElementById("app");
+let trail = [];
+let current = "g1";
+let view = "key";
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function card(id){
+  const s = SP[id];
+  return `<div class="result">
+    <h2>${esc(s.ko)}${s.rare?'<span class="rare">드묾</span>':''}</h2>
+    <p class="en">${esc(s.en)}</p>
+    <dl>
+      <dt>무리</dt><dd>${esc(GROUPS[s.g])}</dd>
+      <dt>${esc(s.root)}</dt><dd>${esc(ROOT[s.root])}</dd>
+      <dt>수식어</dt><dd>${esc(s.mod)}</dd>
+    </dl>
+    ${s.rare?'<p class="warn">드문 종입니다. 사진을 남기고 한 번 더 확인하세요.</p>':''}
+    <a class="ebird" href="https://ebird.org/species/${EB[id]}/KR" target="_blank" rel="noopener">eBird에서 사진·기록 확인</a>
+  </div>`;
+}
+
+function pathHTML(){
+  if(!trail.length) return "";
+  return `<ol class="path" aria-label="지금까지 고른 답">${trail.map(h=>`<li>${esc(h.pick)}</li>`).join("")}</ol>`;
+}
+
+function navHTML(){
+  return `<div class="nav">
+    <button id="back" ${trail.length?"":"disabled"}>이전 질문</button>
+    <button id="restart" ${trail.length?"":"disabled"}>처음부터</button>
+  </div>`;
+}
+
+function renderKey(){
+  let html = `<details><summary>관찰 전 확인</summary><ol>
+    <li>옆에 있는 아는 종과 크기를 비교합니다.</li>
+    <li>부리 길이를 머리 길이와 비교하고, 다리 길이와 몸 비율을 봅니다.</li>
+    <li>깃색은 계절, 성별, 연령에 따라 달라지므로 마지막에 봅니다.</li>
+    <li>계절, 서식지, 흔한 정도를 고려합니다. 드문 종으로 결론이 나면 한 번 더 확인합니다.</li>
+  </ol></details>`;
+  html += pathHTML();
+  if(current.startsWith("sp:")){
+    html += `<div class="stage">${card(current.slice(3))}</div>`;
+  } else if(current.startsWith("multi:")){
+    const ids = current.slice(6).split(",");
+    html += `<div class="stage multi"><p class="q">세 종 중 하나</p>
+      <p class="warn" style="margin:0 0 14px">야외에서 구별하기 매우 어렵고, 꼬리깃의 수와 모양으로 확정합니다. 사진 촬영이 필요합니다.</p>
+      ${ids.map(card).join("")}</div>`;
+  } else {
+    const n = K[current];
+    html += `<div class="stage">
+      <p class="group">${esc(n.grp)}</p>
+      <p class="q">어느 쪽에 가깝습니까?</p>
+      <button class="choice" data-k="a">${esc(n.a[0])}</button>
+      <button class="choice" data-k="b">${esc(n.b[0])}</button>
+    </div>`;
+  }
+  html += navHTML();
+  app.innerHTML = html;
+
+  app.querySelectorAll(".choice").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const opt = K[current][btn.dataset.k];
+      trail.push({node:current,pick:opt[0]});
+      current = opt[1];
+      renderKey(); window.scrollTo(0,0);
+    });
+  });
+  const back = document.getElementById("back");
+  back.addEventListener("click",()=>{ if(!trail.length) return; current = trail.pop().node; renderKey(); });
+  document.getElementById("restart").addEventListener("click",()=>{ trail=[]; current="g1"; renderKey(); });
+}
+
+function renderList(){
+  let html = `<div class="list">`;
+  Object.keys(GROUPS).forEach(g=>{
+    html += `<h3>${esc(GROUPS[g])}</h3>`;
+    Object.entries(SP).filter(([,s])=>s.g===g).forEach(([id,s])=>{
+      html += `<button class="sp" data-id="${id}"><span>${esc(s.ko)}${s.rare?' (드묾)':''}</span><span>${esc(s.en)}</span></button>`;
+    });
+  });
+  html += `</div>`;
+  app.innerHTML = html;
+  app.querySelectorAll(".sp").forEach(b=>{
+    b.addEventListener("click",()=>{
+      app.innerHTML = `<div class="stage">${card(b.dataset.id)}</div><div class="nav"><button id="toList">목록으로</button></div>`;
+      document.getElementById("toList").addEventListener("click",renderList);
+      window.scrollTo(0,0);
+    });
+  });
+}
+
+function setView(v){
+  view = v;
+  document.getElementById("tabKey").setAttribute("aria-pressed", v==="key");
+  document.getElementById("tabList").setAttribute("aria-pressed", v==="list");
+  v==="key" ? renderKey() : renderList();
+}
+document.getElementById("tabKey").addEventListener("click",()=>setView("key"));
+document.getElementById("tabList").addEventListener("click",()=>setView("list"));
+document.getElementById("static").hidden = true;
+setView("key");
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
