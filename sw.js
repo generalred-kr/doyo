@@ -1,6 +1,6 @@
 // 앱 파일을 기기에 저장해 인터넷 없이도 열리게 합니다.
 // 앱 내용을 고친 뒤에는 VERSION 숫자를 올려야 새 버전으로 바뀝니다.
-const VERSION = "doyo-v2";
+const VERSION = "doyo-v3";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
